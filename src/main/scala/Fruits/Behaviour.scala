@@ -1,5 +1,7 @@
 package Fruits
 
+import scala.language.higherKinds
+
 trait Behaviour[F[_]] {
 
   def pure[A](a: A): F[A]

@@ -2,6 +2,8 @@ package Fruits
 
 import BehaviourSyntax._
 
+import scala.language.higherKinds
+
 class Combiner[F[_]](implicit behaviour: Behaviour[F]) {
 
   def mix[A, B](a: F[String], b: F[String]): F[String] = {
@@ -16,7 +18,7 @@ class Combiner[F[_]](implicit behaviour: Behaviour[F]) {
     for {
       result1 <- a
       result2 <- b
-    } yield (result1 + result2)
+    } yield result1 + result2
 
   }
 
