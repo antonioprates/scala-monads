@@ -3,7 +3,6 @@ package Fruits
 import org.scalatest.FunSuite
 
 class FruitBehaviourTest extends FunSuite {
-  type Id[A] = A
 
   implicit val mockBehaviour: Behaviour[List] = new Behaviour[List] {
     override def pure[A](a: A): List[A] = List(a)
@@ -12,6 +11,8 @@ class FruitBehaviourTest extends FunSuite {
       fa.flatMap(f)
   }
 
+  type Id[A] = A
+
   implicit val mockBehaviourId: Behaviour[Id] = new Behaviour[Id] {
     override def pure[A](a: A): A = a
     override def map[A, B](fa: Id[A])(f: A => B): Id[B] = f(fa)
@@ -19,16 +20,22 @@ class FruitBehaviourTest extends FunSuite {
       f(fa)
   }
 
-  val apple = new Apple[List]
-  val banana = new Banana[List]
-  val combiner = new Combiner[List]
-
   test("Behaviour.pure") {
+
+    val apple = new Apple[List]
+    val banana = new Banana[List]
+
     assert(apple.get() === List("Apple"))
     assert(banana.get() === List("Banana"))
+
   }
 
   test("Combiner") {
+
+    val apple = new Apple[List]
+    val banana = new Banana[List]
+    val combiner = new Combiner[List]
+
     assert(combiner.mix(apple.get(), banana.get()) === List("AppleBanana"))
   }
 

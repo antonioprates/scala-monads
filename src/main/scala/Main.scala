@@ -4,6 +4,10 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
+import scala.language.higherKinds
+
+import freestyle.free._
+import freestyle.free.implicits._
 
 /**
   * by A. Prates - antonioprates@gmail.com, may-2019
@@ -51,5 +55,34 @@ object Main extends App {
   val printableO = option.getOrElse("")
 
   println(printableO)
+
+  // EXAMPLE 3: now using Freestyle TODO
+
+//  class FruitHandler(name: String) extends FreeFruit {
+//    override def get(): FS[String] = FS { name }
+//  }
+//
+//  class CombinerHandler() extends FreeCombiner {
+//    override def mix(a: FS[String], b: FS[String]): FS[String] = FS {
+//      for {
+//        result1 <- a
+//        result2 <- b
+//      } yield result1 + result2
+//    }
+//  }
+//
+//  implicit val appleHandler = new FruitHandler("Apple")
+//
+//  implicit val bananaHandler = new FruitHandler("Banana")
+//
+//  @module trait Application {
+//
+//    def program: FS.Seq[Unit] =
+//      for {
+//        freeApple <- appleHandler.get()
+//        freeBanana <- bananaHandler.get()
+//        finalResult <- freeCombiner.mix(freeApple, freeBanana)
+//      } yield (finalResult)
+//  }
 
 }
