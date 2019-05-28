@@ -7,6 +7,7 @@ import cats.data.{NonEmptyList, State, Validated, ValidatedNel}
 import cats.implicits._
 import cats.mtl.MonadState
 import cats.mtl.implicits._
+
 import freestyle.free._
 import freestyle.free.implicits._
 import freestyle.free.effects.validation
@@ -96,12 +97,14 @@ trait ExampleRepository {
     else Failure(new Exception("Not valid"))
   }
 
-  def validateNameWithValidated1(string: String): ValidatedNel[Exception, String] = {
+  def validateNameWithValidated1(
+      string: String): ValidatedNel[Exception, String] = {
     if (string.toLowerCase() == "antonio") Valid(string)
     else Invalid(NonEmptyList.one(new Exception("Not valid REASON 1")))
   }
 
-  def validateNameWithValidated2(string: String): ValidatedNel[Exception, String] = {
+  def validateNameWithValidated2(
+      string: String): ValidatedNel[Exception, String] = {
     if (string == "Antonio") Valid(string)
     else Invalid(NonEmptyList.one(new Exception("Not valid REASON 2")))
   }
@@ -112,7 +115,8 @@ trait ExampleRepository {
       _ <- printLn("Enter Name:")
       s <- readLineP
       //_ <- validateTry(validateNameWithTry(s))
-      _ <- validateValidated(validateNameWithValidated1(s) |+| validateNameWithValidated2(s))
+      _ <- validateValidated(
+        validateNameWithValidated1(s) |+| validateNameWithValidated2(s))
       ss <- FreeS.pure(toUpperCase(s))
       _ <- printLn(s"Printing: $ss")
       c <- getCountries(ss)
@@ -253,9 +257,7 @@ object Example extends App {
     println(
       "\nRunning Example 4: free module with interactive Try short circuit validation")
 
-    val boom = new RuntimeException("BOOM")
-
-    case class MyErrors[E](list: List[E]) extends Throwable{
+    case class MyErrors[E](list: List[E]) extends Throwable {
       override def getMessage: String = list.mkString(" + ")
     }
 
@@ -272,14 +274,14 @@ object Example extends App {
     implicit val validateHandlerTry = new Validator.Handler[Try] {
       override protected def validateTry(s: Try[String]): Try[String] = s
 
-      override protected def validateValidated[E,T](s: ValidatedNel[E, T]): Try[T] = {
+      override protected def validateValidated[E, T](
+          s: ValidatedNel[E, T]): Try[T] = {
         s match {
-          case Valid(value)=> Success(value)
-          case Invalid(e)=> Failure(MyErrors(e.toList))
+          case Valid(value) => Success(value)
+          case Invalid(e)   => Failure(MyErrors(e.toList))
         }
       }
     }
-
 
     val example4 = ExampleRepository.askModuleV[ModuleV.Op].interpret[Try]
     println(s"=> yields $example4\n")
