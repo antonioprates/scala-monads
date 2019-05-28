@@ -1,13 +1,12 @@
 package Freestyle
 
 import ExampleRepository.Pgrms
-
 import cats.Id
-import cats.data.State
+import cats.data.Validated.{Invalid, Valid}
+import cats.data.{NonEmptyList, State, Validated, ValidatedNel}
 import cats.implicits._
 import cats.mtl.MonadState
 import cats.mtl.implicits._
-
 import freestyle.free._
 import freestyle.free.implicits._
 import freestyle.free.effects.validation
@@ -15,6 +14,7 @@ import freestyle.free.effects.validation.ValidationProvider
 
 import scala.io.StdIn
 import scala.language.higherKinds
+import scala.util.{Failure, Success, Try}
 
 @free trait ConsoleProgram {
   def printLn(s: String): FS[Unit]
@@ -25,13 +25,20 @@ import scala.language.higherKinds
   def getCountries(api: String): FS[List[String]]
 }
 
-/*@free trait Validator {
-  def validateName(s: String): FS[Boolean]
-}*/
+@free trait Validator {
+  def validateTry(s: Try[String]): FS[String]
+  def validateValidated[E, T](s: ValidatedNel[E, T]): FS[T]
+}
 
 @module trait Module {
   val console: ConsoleProgram
   val api: ApiProgram
+}
+
+@module trait ModuleV {
+  val console: ConsoleProgram
+  val api: ApiProgram
+  val validator: Validator
 }
 
 sealed trait ValidationError
@@ -84,6 +91,34 @@ trait ExampleRepository {
     }
   }
 
+  def validateNameWithTry(string: String): Try[String] = {
+    if (string == "Antonio") Success(string)
+    else Failure(new Exception("Not valid"))
+  }
+
+  def validateNameWithValidated1(string: String): ValidatedNel[Exception, String] = {
+    if (string.toLowerCase() == "antonio") Valid(string)
+    else Invalid(NonEmptyList.one(new Exception("Not valid REASON 1")))
+  }
+
+  def validateNameWithValidated2(string: String): ValidatedNel[Exception, String] = {
+    if (string == "Antonio") Valid(string)
+    else Invalid(NonEmptyList.one(new Exception("Not valid REASON 2")))
+  }
+
+  def askModuleV[F[_]](implicit module: ModuleV[F]): FreeS[F, List[String]] = {
+    import module.console._, module.api._, module.validator._
+    for {
+      _ <- printLn("Enter Name:")
+      s <- readLineP
+      //_ <- validateTry(validateNameWithTry(s))
+      _ <- validateValidated(validateNameWithValidated1(s) |+| validateNameWithValidated2(s))
+      ss <- FreeS.pure(toUpperCase(s))
+      _ <- printLn(s"Printing: $ss")
+      c <- getCountries(ss)
+    } yield c
+  }
+
 }
 object ExampleRepository extends ExampleRepository
 
@@ -94,6 +129,7 @@ object Example extends App {
   println(" [1] single algebra with interactive 'Option' interpreter")
   println(" [2] multi-algebra module with non-interactive 'Id' interpreter")
   println(" [3] multi-algebra module with interactive validation/error")
+  println(" [4] free module with interactive Try short circuit validation")
 
   print("\nEnter number: ")
 
@@ -101,6 +137,7 @@ object Example extends App {
     case 1 => runE1()
     case 2 => runE2()
     case 3 => runE3()
+    case 4 => runE4()
     case _ => // do nothing
   }
 
@@ -209,4 +246,43 @@ object Example extends App {
     println(s"=> yields $example3b\n")
   }
 
+  def runE4(): Unit = {
+    ///////////////////////////////////////////////////////////////////////////
+    // EXAMPLE 4 - FreeS module with ShortCircuit Error
+
+    println(
+      "\nRunning Example 4: free module with interactive Try short circuit validation")
+
+    val boom = new RuntimeException("BOOM")
+
+    case class MyErrors[E](list: List[E]) extends Throwable{
+      override def getMessage: String = list.mkString(" + ")
+    }
+
+    implicit val consoleHandleTry = new ConsoleProgram.Handler[Try] {
+      override def printLn(s: String): Try[Unit] = Success(println(s))
+      override def readLineP: Try[String] = Success(StdIn.readLine())
+    }
+
+    implicit val apiHandlerTry = new ApiProgram.Handler[Try] {
+      override protected def getCountries(api: String): Try[List[String]] =
+        Success(List("UK", "IN", "BR"))
+    }
+
+    implicit val validateHandlerTry = new Validator.Handler[Try] {
+      override protected def validateTry(s: Try[String]): Try[String] = s
+
+      override protected def validateValidated[E,T](s: ValidatedNel[E, T]): Try[T] = {
+        s match {
+          case Valid(value)=> Success(value)
+          case Invalid(e)=> Failure(MyErrors(e.toList))
+        }
+      }
+    }
+
+
+    val example4 = ExampleRepository.askModuleV[ModuleV.Op].interpret[Try]
+    println(s"=> yields $example4\n")
+
+  }
 }
