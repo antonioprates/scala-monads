@@ -8,6 +8,8 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 
 libraryDependencies += "io.frees" %% "frees-core" % "0.8.2"
 
+libraryDependencies += "io.frees" %% "frees-effects" % "0.8.2"
+
 addCompilerPlugin(
   "org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full)
 
