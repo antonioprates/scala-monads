@@ -15,10 +15,16 @@ object ExampleOfErrorM extends App {
 
   type Target[A] = Either[Throwable, A]
 
-  def shortCircuitWithError[F[_]: ErrorM] =
+  def validate[F[_]: ErrorM](s: Int): FreeS[F, Int] = {
+    if(s ==1) ErrorM[F].error[Int](boom)
+    else FreeS.pure(s)
+  }
+
+  def shortCircuitWithError[F[_]: ErrorM]: FreeS[F, Int] =
     for {
       a <- FreeS.pure(1)
-      b <- ErrorM[F].error[Int](boom)
+      //b <- ErrorM[F].error[Int](boom)
+      b <- validate(2)
       c <- FreeS.pure(1)
     } yield a + b + c
 
